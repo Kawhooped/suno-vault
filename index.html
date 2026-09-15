@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SUNO VAULT</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet" />
+<style>
+  body{margin:0;background:#0a0a0f;color:#f4f4f5;font-family:"JetBrains Mono",monospace}
+  header{position:sticky;top:0;padding:12px 14px;background:rgba(8,8,12,.8);border-bottom:1px solid rgba(255,255,255,.1)}
+  b{background:linear-gradient(90deg,#d946ef,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+  main{max-width:720px;margin:0 auto;padding:16px 14px 140px}
+  .panel{border:1px solid rgba(255,255,255,.1);padding:12px;margin:10px 0;background:#0f1220}
+  textarea,input,button{font:inherit;background:#08080c;color:#f4f4f5;border:1px solid rgba(255,255,255,.12);padding:8px}
+  button{letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  .track{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px;cursor:pointer}
+  .track.on{outline:1px solid #22d3ee}
+  img{width:44px;height:44px;object-fit:cover;background:#111}
+  .cover{width:88px;height:88px}
+  .dock{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(8,8,12,.9)}
+  a{color:#22d3ee}
+</style>
+</head>
+<body>
+<header>VAULT <b>SUNO</b> - <a href="https://github.com/Kawhooped/suno-vault">repo</a></header>
+<main>
+  <div class="panel">
+    <img class="cover" id="cover" alt="">
+    <div id="nowTitle">NO SIGNAL</div>
+    <div id="nowArtist">queue</div>
+    <audio id="audio" controls style="width:100%;margin-top:8px"></audio>
+    <div>
+      <button id="prev">PREV</button>
+      <button id="playBtn">PLAY</button>
+      <button id="next">NEXT</button>
+    </div>
+  </div>
+  <div class="panel">
+    <textarea id="ingest" rows="4" placeholder="paste suno.com/song/... links"></textarea>
+    <button id="btnImport">PULL</button>
+    <input id="files" type="file" accept="audio/*,.json" multiple>
+  </div>
+  <div class="panel" id="list"></div>
+</main>
+<div class="dock"><span id="dockTitle">idle</span></div>
+<script>
+const audio=document.getElementById("audio");
+const UUID=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+let songs=[], idx=0;
+const blobs=new Map();
+function mp3(s){return s.local&&blobs.has(s.id)?blobs.get(s.id):(s.src||("https://cdn1.suno.ai/"+s.id+".mp3"))}
+function art(s){return s.local?"":"https://cdn1.suno.ai/image_"+s.id+".png"}
+function upsert(s){const i=songs.findIndex(x=>x.id===s.id);if(i>=0)songs[i]=Object.assign({},songs[i],s);else songs.unshift(s)}
+function render(){
+  document.getElementById("list").innerHTML=songs.map((s,i)=>'<div class="track '+(i===idx?"on":"")+'" data-i="'+i+'"><img src="'+art(s)+'"><div>'+(s.title||s.id)+'<br><small>'+(s.artist||"")+'</small></div></div>').join("");
+  document.querySelectorAll(".track").forEach(el=>el.onclick=()=>play(+el.dataset.i));
+}
+function play(i){if(!songs.length)return;idx=(i+songs.length)%songs.length;const s=songs[idx];audio.src=mp3(s);audio.play().catch(()=>{});document.getElementById("cover").src=art(s);document.getElementById("nowTitle").textContent=s.title||s.id;document.getElementById("nowArtist").textContent=s.artist||"suno";document.getElementById("dockTitle").textContent=s.title||s.id;render()}
+document.getElementById("btnImport").onclick=()=>{
+  const text=document.getElementById("ingest").value;
+  for(const t of text.split(/\s+/)){const m=t.match(UUID);if(!m)continue;upsert({id:m[0],title:m[0].slice(0,8),artist:"suno"})}
+  render();
+};
+document.getElementById("files").onchange=e=>{
+  for(const f of e.target.files){
+    if(f.name.endsWith(".json")){f.text().then(t=>{const d=JSON.parse(t);(d.songs||d).forEach(upsert);render()});continue}
+    const id="local-"+Math.random().toString(36).slice(2,8);
+    blobs.set(id,URL.createObjectURL(f));
+    upsert({id,title:f.name.replace(/\.[^.]+$/,""),artist:"upload",local:true});
+  }
+  render();
+};
+document.getElementById("prev").onclick=()=>play(idx-1);
+document.getElementById("next").onclick=()=>play(idx+1);
+document.getElementById("playBtn").onclick=()=>{if(!audio.src)play(idx);else if(audio.paused)audio.play();else audio.pause()};
+audio.onended=()=>play(idx+1);
+fetch("./data/library.json").then(r=>r.json()).then(d=>{(d.songs||[]).forEach(upsert);render();if(songs[0])play(0)}).catch(()=>{});
+</script>
+</body>
+</html>
