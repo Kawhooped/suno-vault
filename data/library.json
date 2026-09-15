@@ -1,0 +1,24 @@
+{
+  "songs": [
+    {
+      "id": "9f84e7c7-bb9b-4646-b9a6-9b06f37470f5",
+      "title": "Pocket Cat",
+      "artist": "suno",
+      "tags": "demo · catalog",
+      "liked": true
+    },
+    {
+      "id": "156a8275-3583-4b1e-8866-db12b5bfda63",
+      "title": "All speak for your life",
+      "artist": "dmacd",
+      "tags": "demo · catalog",
+      "liked": true
+    }
+  ],
+  "playlists": {
+    "liked": [
+      "9f84e7c7-bb9b-4646-b9a6-9b06f37470f5",
+      "156a8275-3583-4b1e-8866-db12b5bfda63"
+    ]
+  }
+}
